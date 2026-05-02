@@ -16,6 +16,11 @@ from gepetto.ida.handlers import (
     SwapModelHandler,
 )
 from gepetto.ida.comment_handler import CommentHandler
+from gepetto.ida.claude_auth import (
+    ClaudeLoginHandler,
+    ClaudeStartWrapperHandler,
+    ClaudeStopWrapperHandler,
+)
 from gepetto.ida.cli import register_cli
 from gepetto.ida.status_panel.status_panel_factory import get_status_panel
 import gepetto.models.model_manager
@@ -63,6 +68,12 @@ class GepettoPlugin(idaapi.plugin_t):
     c_code_menu_path = "Edit/Gepetto/" + _("Generate C Code")
     python_code_action_name = "gepetto:generate_python_code"
     python_code_menu_path = "Edit/Gepetto/" + _("Generate Python Code")
+    claude_login_action_name = "gepetto:claude_login"
+    claude_login_menu_path = "Edit/Gepetto/Claude.ai/" + _("Login")
+    claude_start_action_name = "gepetto:claude_start_wrapper"
+    claude_start_menu_path = "Edit/Gepetto/Claude.ai/" + _("Start server")
+    claude_stop_action_name = "gepetto:claude_stop_wrapper"
+    claude_stop_menu_path = "Edit/Gepetto/Claude.ai/" + _("Stop server")
     auto_show_action_name = "gepetto:toggle_status_panel_auto_show"
     wanted_name = 'Gepetto'
     wanted_hotkey = ''
@@ -81,9 +92,9 @@ class GepettoPlugin(idaapi.plugin_t):
         # Only launch in interactive mode
         if not ida_kernwin.is_idaq():
             return idaapi.PLUGIN_SKIP
-        # Check if Gepetto loaded at least one model properly
         if not gepetto.config.model:
-            return idaapi.PLUGIN_SKIP
+            print(_("Gepetto: No model configured yet. Use Edit > Gepetto > Claude.ai to start the wrapper, "
+                     "or set an API key in config.ini."))
 
         # Function explaining action
         explain_action = idaapi.action_desc_t(self.explain_action_name,
@@ -146,6 +157,46 @@ class GepettoPlugin(idaapi.plugin_t):
         idaapi.attach_action_to_menu(self.rename_menu_path, self.rename_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.c_code_menu_path, self.c_code_action_name, idaapi.SETMENU_APP)
         idaapi.attach_action_to_menu(self.python_code_menu_path, self.python_code_action_name, idaapi.SETMENU_APP)
+
+        # Claude.ai wrapper actions
+        claude_login_action = idaapi.action_desc_t(
+            self.claude_login_action_name,
+            _("Login"),
+            ClaudeLoginHandler(),
+            "",
+            _("Authenticate with your Claude.ai account"),
+            -1,
+        )
+        idaapi.register_action(claude_login_action)
+        idaapi.attach_action_to_menu(
+            self.claude_login_menu_path, self.claude_login_action_name, idaapi.SETMENU_APP
+        )
+
+        claude_start_action = idaapi.action_desc_t(
+            self.claude_start_action_name,
+            _("Start server"),
+            ClaudeStartWrapperHandler(),
+            "",
+            _("Start the Claude.ai OpenAI-compatible wrapper server"),
+            -1,
+        )
+        idaapi.register_action(claude_start_action)
+        idaapi.attach_action_to_menu(
+            self.claude_start_menu_path, self.claude_start_action_name, idaapi.SETMENU_APP
+        )
+
+        claude_stop_action = idaapi.action_desc_t(
+            self.claude_stop_action_name,
+            _("Stop server"),
+            ClaudeStopWrapperHandler(),
+            "",
+            _("Stop the Claude.ai wrapper server"),
+            -1,
+        )
+        idaapi.register_action(claude_stop_action)
+        idaapi.attach_action_to_menu(
+            self.claude_stop_menu_path, self.claude_stop_action_name, idaapi.SETMENU_APP
+        )
 
         PLUGIN_INSTANCE = self
 
@@ -324,6 +375,12 @@ class GepettoPlugin(idaapi.plugin_t):
         if self.menu:
             self.menu.unhook()
         self._unregister_auto_show_action()
+        for action_name in (
+            self.claude_login_action_name,
+            self.claude_start_action_name,
+            self.claude_stop_action_name,
+        ):
+            _safe_execute_sync(functools.partial(idaapi.unregister_action, action_name))
         get_status_panel().close()
         PLUGIN_INSTANCE = None
         return

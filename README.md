@@ -38,6 +38,10 @@ method with the corresponding provider.
 
 ## Supported models
 
+- [Anthropic](https://console.anthropic.com/)
+  - claude-opus-4-7
+  - claude-sonnet-4-6
+  - claude-haiku-4-5
 - [OpenAI](https://playground.openai.com/)
   - gpt-5
   - gpt-5-mini
@@ -85,6 +89,9 @@ method with the corresponding provider.
   - Qwen/Qwen2.5-VL-7B-Instruct
 - [LM Studio](https://lmstudio.ai/)
   - Any local model exposed through LM Studio (will not appear if LM Studio Developer server is not running)
+- [Claude.ai via Wrapper](https://github.com/RichardAtCT/claude-code-openai-wrapper)
+  - Any Claude model available through the wrapper (will not appear if the wrapper is not running)
+  - Uses your Claude.ai subscription (Pro/Max) — no separate API key needed
 
 Adding support for additional models shouldn't be too difficult, provided whatever provider you're considering exposes
 an API similar to OpenAI's. Look into the `gepetto/models` folder for inspiration, or open an issue if you can't figure
